@@ -4031,6 +4031,7 @@ async function serverConnect() {
     if(!url) {
         console.warn("no endpoint in status");
         url = `ws${location.protocol === 'https:' ? 's' : ''}://${location.host}/ws`;
+        //UNTESTED// url = "ws" + `document.baseURI`.substring(4) + "/ws";
     }
 
     try {

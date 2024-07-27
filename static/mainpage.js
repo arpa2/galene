@@ -84,7 +84,7 @@ async function listPublicGroups() {
 
     let l;
     try {
-        let r = await fetch('/public-groups.json');
+        let r = await fetch('public-groups.json');
         if(!r.ok)
             throw new Error(`${r.status} ${r.statusText}`);
         l = await r.json();
