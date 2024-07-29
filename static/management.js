@@ -353,7 +353,7 @@ async function createToken(group, template) {
     }
 
     let r = await fetch(
-        `/galene-api/v0/.groups/${group}/.tokens/`,
+        `galene-api/v0/.groups/${group}/.tokens/`,
         options);
     if(!r.ok)
         throw httpError(r);
@@ -373,6 +373,6 @@ async function updateToken(group, token, etag) {
     if(!token.token)
         throw new Error("Unnamed token");
     return await updateObject(
-        `/galene-api/v0/.groups/${group}/.tokens/${token.token}`,
+        `galene-api/v0/.groups/${group}/.tokens/${token.token}`,
         token, etag);
 }

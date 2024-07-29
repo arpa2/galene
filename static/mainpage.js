@@ -29,7 +29,7 @@ document.getElementById('groupform').onsubmit = async function(e) {
     let group = groupinput.value.trim();
     if(group === '')
         return;
-    let url = '/group/' + group + '/';
+    let url = 'group/' + group + '/';
     let statusUrl = url + '.status.json';
 
     try {
