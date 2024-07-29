@@ -103,95 +103,6 @@ func cspHeader(w http.ResponseWriter, connect string) {
 	w.Header().Add("X-Content-Type-Options", "nosniff")
 }
 
-// Some files contain <base href="@"> which must have a URL written in
-type WriteWrapper struct {
-	inner http.ResponseWriter;
-	url string;
-	seen bool;
-	err error;
-}
-
-func (ww WriteWrapper) Write (p []byte) (int, error) {
-	if ww.err != nil {
-		return 0, ww.err
-	} else if ww.seen {
-		return ww.inner.Write (p)
-	} else {
-		var atpos int
-		atpos = 0
-		for atpos < len(p) {
-			if p [atpos] == '@' {
-				break
-			}
-			atpos += 1
-		}
-		var n int
-		n, ww.err = ww.inner.Write (p [:atpos])
-		if ww.err != nil {
-			return n, ww.err
-		}
-		if atpos < len(p) {
-			ww.seen = true
-			_, ww.err = ww.inner.Write (([]byte) (ww.url))
-			if ww.err != nil {
-				return n, ww.err
-			}
-			// Only report back the length of "@"
-			n += 1
-			// if atpos + 1 < len(p) {
-				var n2 int
-				n2, ww.err = ww.inner.Write (p [atpos+1:])
-				if ww.err != nil {
-					return n, ww.err
-				}
-				n += n2
-			// }
-		}
-		return n, ww.err
-	}
-}
-
-func (ww WriteWrapper) Header () http.Header {
-	return ww.inner.Header ()
-}
-
-func (ww WriteWrapper) WriteHeader (status int) {
-	if ww.err == nil {
-		contlenhdr := ww.inner.Header().Get ("Content-Length")
-		if contlenhdr != "" {
-			var contlen int
-			n, err2 := fmt.Sscan (contlenhdr, "%d", &contlen)
-			if n != 1 || err2 != nil {
-				contlen += len (ww.url) - 1
-				var contlenstr string
-				fmt.Sprintf (contlenstr, "%d", contlen)
-				ww.inner.Header().Set ("Content-Length", contlenstr)
-			}
-		}
-		ww.inner.WriteHeader (status)
-	}
-}
-
-// Filter: replace the first character '@' with the application baseURL
-func substBaseHref (innerWriter http.ResponseWriter) http.ResponseWriter {
-	ww := WriteWrapper {
-		seen:  false,
-		err:   nil,
-		url:   "/",
-		inner: innerWriter,
-	}
-
-	conf, err := group.GetConfiguration()
-	if err == nil && conf.ProxyURL != "" {
-		ww.url = conf.ProxyURL
-		if ww.url[len(ww.url)-1] != '/' {
-			ww.url = ww.url + "/"
-		}
-	}
-
-	return ww
-}
-
 func notFound(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
@@ -203,7 +114,6 @@ func notFound(w http.ResponseWriter) {
 	}
 	defer f.Close()
 
-	w = substBaseHref(w)
 	io.Copy(w, f)
 }
 
@@ -344,7 +254,6 @@ func (fh *fileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		f, fi = ff, dd
 		p = index
-		w = substBaseHref(w)
 	}
 
 	makeCachable(w, p, fi, true)
@@ -372,7 +281,6 @@ func serveFile(w http.ResponseWriter, r *http.Request, p string) {
 	}
 
 	makeCachable(w, p, fi, true)
-	w = substBaseHref(w)
 	http.ServeContent(w, r, fi.Name(), fi.ModTime(), f)
 }
 
