@@ -1,0 +1,25 @@
+# Fork of Galène
+
+This is a friendly fork of the [Galène project](https://github.com/arpa2/galene),
+a well-done video conferencing tool by [Juliusz Choroboczek](https://github.com/jech).
+
+We need a few elements in here that he preferred to not include as a maintence
+responsibility.  He suggested forking so we could proceed.  We intend to keep
+close to the original, and are quite open to see any of our patches integrate
+into the main work.
+
+Things we change are:
+
+  * [Support for paths](https://github.com/jech/galene/pull/212) in the `proxyURL` configuration parameter
+  * Support for IPv4-IPv6 and IPv6-IPv6 connections (FUTURE)
+
+We are building this tool into our
+["mkhere" container recipe](https://gitlab.com/arpa2/mkroot/)
+for the
+[`internetwide/chat`](https://gitlab.com/arpa2/mkroot/-/tree/master/internetwide/chat)
+container, which offers it as a plugin to the shared web server
+[`internetwide/web`](https://gitlab.com/arpa2/mkroot/-/tree/master/internetwide/web)
+after our usual prefix `/internetwide/chat/galene`.
+
+Everything good about this package probably comes from Juliusz.  We only made slight
+modifications to make it better on things we thougth were vital.
