@@ -219,13 +219,22 @@ Galène includes an IPv4-only TURN server, which is controlled by the
     connections to port 1194;
 
   * if the value of this option is a socket address, such as
-    `203.0.113.1:1194`, then the TURN server will listen on all addresses
+    `203.0.113.1:1194`, then the TURN server will listen on private addresses
     of the local host but assume that the address seen by the clients is
     the one given in the option; this is useful when running behind NAT
     with port forwarding set up.
 
   * the default value is `auto`, which behaves like `:1194` if there is no
     `data/ice-servers.json` file, and like `""` otherwise.
+
+  * when the TURN server is not disabled, it will listen on all public
+    IPv6 addresses, using the same port as for IPv4;
+
+  * to force the TURN server to focus on a subset of the normal listened-to
+    addresses, specify `-focus` with a comma-separated list of address
+    prefixes in CIDR notation, like `-focus 192.168.0.0/16,2a02::/32`.
+    When not specified, the value `0.0.0.0/0,::/0` will be used and no
+    focus will be imposed on TURN.
 
 If the server is not accessible from the Internet, e.g. because of NAT or
 because it is behind a restrictive firewall, then you should configure

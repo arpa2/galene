@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"strings"
 	"log"
 	"net"
 	"strconv"
@@ -16,6 +17,8 @@ import (
 var username string
 var password string
 var Address string
+var Focus string
+var netfocus []net.IPNet;
 
 var server struct {
 	mu        sync.Mutex
@@ -38,7 +41,12 @@ func publicAddresses() ([]net.IP, error) {
 			if !a.IsGlobalUnicast() || a.IsPrivate() {
 				continue
 			}
-			as = append(as, a)
+			for _,net := range netfocus {
+				if net.Contains(a) {
+					as = append(as, a)
+					break
+				}
+			}
 		}
 	}
 	return as, nil
@@ -59,7 +67,12 @@ func privateIPv4Addresses() ([]net.IP, error) {
 			if a.To4() == nil || !a.IsGlobalUnicast() || !a.IsPrivate() {
 				continue
 			}
-			as = append(as, a)
+			for _,net := range netfocus {
+				if net.Contains(a) {
+					as = append(as, a)
+					break
+				}
+			}
 		}
 	}
 	return as, nil
@@ -131,6 +144,14 @@ func Start() error {
 	_, err = rand.Read(buf)
 	if err != nil {
 		return err
+	}
+
+	for _, netstr := range strings.Split(Focus,",") {
+		_,netobj, err := net.ParseCIDR(netstr)
+		if err != nil {
+			return err
+		}
+		netfocus = append(netfocus, *netobj)
 	}
 
 	buf2 := make([]byte, 8)

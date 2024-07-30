@@ -49,6 +49,8 @@ func main() {
 		"require use of TURN relays for all media traffic")
 	flag.StringVar(&turnserver.Address, "turn", "auto",
 		"built-in TURN server `address` (\"\" to disable)")
+	flag.StringVar(&turnserver.Focus, "focus", "0.0.0.0/0,::/0",
+		"built-in TURN server limits focus to listed address prefixes")
 	flag.Parse()
 
 	if udpRange != "" {
