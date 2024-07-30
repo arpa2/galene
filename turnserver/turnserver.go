@@ -34,16 +34,29 @@ func publicAddresses() ([]net.IP, error) {
 	for _, addr := range addrs {
 		switch addr := addr.(type) {
 		case *net.IPNet:
-			a := addr.IP.To4()
-			if a == nil {
+			a := addr.IP
+			if !a.IsGlobalUnicast() || a.IsPrivate() {
 				continue
 			}
-			if !a.IsGlobalUnicast() {
-				continue
-			}
-			if a[0] == 10 ||
-				a[0] == 172 && a[1] >= 16 && a[1] < 32 ||
-				a[0] == 192 && a[1] == 168 {
+			as = append(as, a)
+		}
+	}
+	return as, nil
+}
+
+func privateIPv4Addresses() ([]net.IP, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	var as []net.IP
+
+	for _, addr := range addrs {
+		switch addr := addr.(type) {
+		case *net.IPNet:
+			a := addr.IP
+			if a.To4() == nil || !a.IsGlobalUnicast() || !a.IsPrivate() {
 				continue
 			}
 			as = append(as, a)
@@ -69,7 +82,7 @@ func listener(a net.IP, port int, relay net.IP) (*turn.PacketConnConfig, *turn.L
 		}
 	}
 
-	p, err := net.ListenPacket("udp4", s)
+	p, err := net.ListenPacket("udp", s)
 	if err == nil {
 		pcc = &turn.PacketConnConfig{
 			PacketConn:            p,
@@ -79,7 +92,7 @@ func listener(a net.IP, port int, relay net.IP) (*turn.PacketConnConfig, *turn.L
 		log.Printf("TURN: listenPacket(%v): %v", s, err)
 	}
 
-	l, err := net.Listen("tcp4", s)
+	l, err := net.Listen("tcp", s)
 	if err == nil {
 		lc = &turn.ListenerConfig{
 			Listener:              l,
@@ -128,34 +141,45 @@ func Start() error {
 	var pccs []turn.PacketConnConfig
 
 	if addr.IP != nil && !addr.IP.IsUnspecified() {
+		// We got an external IPv4 address and will listen to any private IPv4
 		a := addr.IP.To4()
 		if a == nil {
 			return errors.New("couldn't parse address")
 		}
-		pcc, lc := listener(net.IP{0, 0, 0, 0}, addr.Port, a)
-		if pcc != nil {
-			pccs = append(pccs, *pcc)
-			server.addresses = append(server.addresses, &net.UDPAddr{
-				IP:   a,
-				Port: addr.Port,
-			})
+
+		bs, err := privateIPv4Addresses()
+		if err != nil {
+			return err
 		}
-		if lc != nil {
-			lcs = append(lcs, *lc)
-			server.addresses = append(server.addresses, &net.TCPAddr{
-				IP:   a,
-				Port: addr.Port,
-			})
+		log.Printf("Listening on %d private addresses: %v", len(bs), bs)
+
+		for _, b := range bs {
+			pcc, lc := listener(b, addr.Port, a)
+			if pcc != nil {
+				pccs = append(pccs, *pcc)
+				server.addresses = append(server.addresses, &net.UDPAddr{
+					IP:   a,
+					Port: addr.Port,
+				})
+			}
+			if lc != nil {
+				lcs = append(lcs, *lc)
+				server.addresses = append(server.addresses, &net.TCPAddr{
+					IP:   a,
+					Port: addr.Port,
+				})
+			}
 		}
-	} else {
+	}
+
+	if (true) {
+		// Listen to public IPv4 and IPv6 addresses, if we have any
+		// Note: Should we constrain this?  Privacy!  Efficiency!
 		as, err := publicAddresses()
 		if err != nil {
 			return err
 		}
-
-		if len(as) == 0 {
-			return errors.New("no public addresses")
-		}
+		log.Printf("Listening on %d public addresses: %v", len(as), as)
 
 		for _, a := range as {
 			pcc, lc := listener(a, addr.Port, nil)
