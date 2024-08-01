@@ -47,8 +47,10 @@ func main() {
 	flag.BoolVar(&group.UseMDNS, "mdns", false, "gather mDNS addresses")
 	flag.BoolVar(&ice.ICERelayOnly, "relay-only", false,
 		"require use of TURN relays for all media traffic")
-	flag.StringVar(&turnserver.Address, "turn", "auto",
-		"built-in TURN server `address` (\"\" to disable)")
+	flag.StringVar(&turnserver.ExternalAddress, "turn", "auto",
+		"external TURN server `[address]:port` (IPv4 outside NAT, \"\" to disable)")
+	flag.StringVar(&turnserver.InternalAddress, "inturnal", "",
+		"internal TURN server `address:port` (IPv4 inside NAT44, IPv6 inside NAT46)")
 	flag.StringVar(&turnserver.Focus, "focus", "0.0.0.0/0,::/0",
 		"built-in TURN server limits focus to listed address prefixes")
 	flag.Parse()

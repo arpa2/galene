@@ -16,7 +16,8 @@ import (
 
 var username string
 var password string
-var Address string
+var ExternalAddress string
+var InternalAddress string
 var Focus string
 var netfocus []net.IPNet;
 
@@ -126,12 +127,12 @@ func Start() error {
 		return nil
 	}
 
-	if Address == "" {
+	if ExternalAddress == "" {
 		return errors.New("built-in TURN server disabled")
 	}
 
-	ad := Address
-	if Address == "auto" {
+	ad := ExternalAddress
+	if ExternalAddress == "auto" {
 		ad = ":1194"
 	}
 	addr, err := net.ResolveUDPAddr("udp4", ad)
@@ -168,14 +169,27 @@ func Start() error {
 			return errors.New("couldn't parse address")
 		}
 
-		bs, err := privateIPv4Addresses()
-		if err != nil {
-			return err
+		var bs []net.IP
+		var b_port int
+		if InternalAddress == "" {
+			b_port = addr.Port
+			bs, err := privateIPv4Addresses()
+			if err != nil {
+				return err
+			}
+			log.Printf("Listening on %d private addresses: %v", len(bs), bs)
+		} else {
+			b, err := net.ResolveUDPAddr("udp", InternalAddress)
+			if err != nil {
+				return err
+			}
+			log.Printf("Listening on 1 -inturnal address: %v", b)
+			bs = []net.IP{b.IP}
+			b_port = b.Port
 		}
-		log.Printf("Listening on %d private addresses: %v", len(bs), bs)
 
 		for _, b := range bs {
-			pcc, lc := listener(b, addr.Port, a)
+			pcc, lc := listener(b, b_port, a)
 			if pcc != nil {
 				pccs = append(pccs, *pcc)
 				server.addresses = append(server.addresses, &net.UDPAddr{
@@ -296,12 +310,12 @@ func Stop() error {
 }
 
 func StartStop(start bool) error {
-	if Address == "auto" {
+	if ExternalAddress == "auto" {
 		if start {
 			return Start()
 		}
 		return Stop()
-	} else if Address == "" {
+	} else if ExternalAddress == "" {
 		return Stop()
 	}
 	return Start()
